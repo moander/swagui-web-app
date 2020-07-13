@@ -1,0 +1,51 @@
+<!-- https://github.com/moander/swagui-web-app -->
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Swagger UI</title>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.11/vue.min.js"
+    integrity="sha512-QJsj3afWlCpnQ60XzzYE8Jb3IgHIK1BcGZox9rUSmRRq3Ocz9vQ1yR80eX2/b9jfx/UuT5zYWNdrM8Te/eCMhQ=="
+    crossorigin="anonymous"></script>
+  <script>
+    window.onload = function () {
+      let url = decodeURIComponent((location.search || '').replace(/^\?/, ''));
+      if (url) {
+        location.replace('/v1/?url=' + encodeURIComponent(url));
+      }
+      else {
+        new Vue({
+          el: '#app',
+
+          template: `<div style="margin: 20px;">
+                <h5>Swagger UI</h5>
+                <div style="margin-bottom: 10px">
+                    <input v-model="url" placeholder="Enter swagger file url" style="width:100%; padding:5px">
+                </div>
+                <div v-if="targetUrl">
+                    <a target="_blank" v-bind:href="targetUrl">{{targetUrl}}</a>
+                </div>
+            </div>`,
+
+          computed: {
+            targetUrl: function () {
+              return !this.url ? '' : location.origin + '?' + encodeURIComponent(this.url)
+            }
+          },
+
+          data: {
+            url: 'https://petstore.swagger.io/v2/swagger.json'
+          }
+        });
+      }
+    };
+  </script>
+</body>
+
+</html>

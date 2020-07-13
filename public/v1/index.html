@@ -1,0 +1,62 @@
+<!-- https://github.com/moander/swagui-web-app -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Swagger UI</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.28.0/swagger-ui.min.css"
+    integrity="sha512-suHti+RqIgOfu9kyISp26bLb8B8UELAatcfOvCGZWp6HWnDmnJV8klN5xd8pLxwrBKNJ+cc7xnlyTNwnfZg5Nw=="
+    crossorigin="anonymous" />
+  <style>
+    html {
+      box-sizing: border-box;
+      overflow: -moz-scrollbars-vertical;
+      overflow-y: scroll;
+    }
+
+    *,
+    *:before,
+    *:after {
+      box-sizing: inherit;
+    }
+
+    body {
+      margin: 0;
+      background: #fafafa;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.28.0/swagger-ui-bundle.min.js"
+    integrity="sha512-tcjL/9Ao/sZryswEhq0uIGbeTJbVP6jYfT9KajNmeOhxdd6VBAk7kuY89IrxXn+FrixFyMBuExV3d30y8J7L1g=="
+    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.28.0/swagger-ui-standalone-preset.min.js"
+    integrity="sha512-WIMXQEGC0ozEWWVBkedlsjtxBaV0o9Sbl+pkUwsyrsOFMg0ecn0jlf7S2zpJ1whXdjP2x9/ea/tg/BMOvKcFiw=="
+    crossorigin="anonymous"></script>
+  <script>
+    window.onload = function () {
+      // Begin Swagger UI call region
+      const ui = SwaggerUIBundle({
+        url: new URLSearchParams(window.location.search).get('url'),
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        plugins: [
+          SwaggerUIBundle.plugins.DownloadUrl
+        ],
+        layout: "StandaloneLayout"
+      })
+      // End Swagger UI call region
+
+      window.ui = ui
+    }
+  </script>
+</body>
+
+</html>

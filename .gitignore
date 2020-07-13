@@ -1,0 +1,7 @@
+*.log
+.firebase/
+.vscode/
+.DS_Store
+Thumbs.db
+
+

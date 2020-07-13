@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "moander"
+  },
+  "targets": {
+    "moander": {
+      "hosting": {
+        "swagui": [
+          "swagui"
+        ]
+      }
+    }
+  }
+}
