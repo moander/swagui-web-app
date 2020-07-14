@@ -25,6 +25,10 @@
       margin: 0;
       background: #fafafa;
     }
+
+    .response-controls {
+      display: none !important;
+    }
   </style>
 </head>
 
@@ -43,6 +47,14 @@
         url: new URLSearchParams(window.location.search).get('url'),
         dom_id: '#swagger-ui',
         deepLinking: true,
+        displayOperationId: true,
+        defaultModelExpandDepth: 4,
+        defaultModelsExpandDepth: 5,
+        displayRequestDuration: true,
+        filter: true,
+        showExtensions: true,
+        showCommonExtensions: true,
+        validatorUrl: 'https://validator.swagger.io/validator',
         presets: [
           SwaggerUIBundle.presets.apis,
           SwaggerUIStandalonePreset
