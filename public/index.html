@@ -24,18 +24,25 @@
           el: '#app',
 
           template: `<div style="margin: 20px;">
-                <h5>Swagger UI</h5>
+                <h5>Enter url to a swagger file</h5>
                 <div style="margin-bottom: 10px">
                     <input v-model="url" placeholder="Enter swagger file url" style="width:100%; padding:5px">
                 </div>
                 <div v-if="targetUrl">
+                    <h5>Swagger UI</h5>
                     <a target="_blank" v-bind:href="targetUrl">{{targetUrl}}</a>
+
+                    <h5>ReDoc</h5>
+                    <a target="_blank" v-bind:href="redocUrl">{{redocUrl}}</a>
                 </div>
             </div>`,
 
           computed: {
             targetUrl: function () {
               return !this.url ? '' : location.origin + '?' + encodeURIComponent(this.url)
+            },
+            redocUrl: function () {
+              return !this.url ? '' : location.origin + '/redoc/?url=' + encodeURIComponent(this.url)
             }
           },
 
