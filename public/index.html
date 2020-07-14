@@ -16,7 +16,7 @@
   <script>
     window.onload = function () {
       let url = decodeURIComponent((location.search || '').replace(/^\?/, ''));
-      if (url) {
+      if (url && !location.search.startsWith('?url=')) {
         location.replace('/v1/?url=' + encodeURIComponent(url));
       }
       else {
@@ -34,20 +34,32 @@
 
                     <h5>ReDoc</h5>
                     <a target="_blank" v-bind:href="redocUrl">{{redocUrl}}</a>
+
+                    <h5>This page</h5>
+                    <a v-bind:href="selfUrl">{{selfUrl}}</a>
                 </div>
             </div>`,
 
           computed: {
-            targetUrl: function () {
+            targetUrl() {
               return !this.url ? '' : location.origin + '?' + encodeURIComponent(this.url)
             },
-            redocUrl: function () {
+            redocUrl() {
               return !this.url ? '' : location.origin + '/redoc/?url=' + encodeURIComponent(this.url)
+            },
+            selfUrl() {
+              return !this.url ? '' : location.origin + '/?url=' + encodeURIComponent(this.url)
+            },
+          },
+
+          watch: {
+            url(url) {
+              window.history.replaceState({}, '', '?url=' + encodeURIComponent(url));
             }
           },
 
           data: {
-            url: 'https://petstore.swagger.io/v2/swagger.json'
+            url: new URLSearchParams(window.location.search).get('url') || 'https://petstore.swagger.io/v2/swagger.json'
           }
         });
       }
