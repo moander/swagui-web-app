@@ -62,6 +62,10 @@
       const ui = SwaggerUIBundle({
         url: qs.get('url'),
         dom_id: '#swagger-ui',
+        configUrl: qs.get('configUrl') || undefined,
+        docExpansion: qs.get('docExpansion') || undefined,
+        tagsSorter: qs.get('tagsSorter') || undefined,
+        operationsSorter: qs.get('operationsSorter') || undefined,
         deepLinking: getBool('deepLinking', true),
         displayOperationId: getBool('displayOperationId', false),
         defaultModelExpandDepth: getNum('defaultModelExpandDepth', 4),
