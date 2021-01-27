@@ -41,7 +41,20 @@
     integrity="sha512-B3qGQ8PwgvjMHXbgkPmQqHf46PO1fsqaXSXDprrAwKWciMyiIBwgwK0teSI4xLg6+Yn8TrxPJmzOw7qcCsG+DQ=="
     crossorigin="anonymous"></script>
   <script>
+    function fixHashQs() {
+      const ix = (location.hash || '').indexOf('?');
+      if (ix > -1) {
+        const newHash = location.hash.substr(0, ix);
+        const hashQs = new URLSearchParams(location.hash.substr(ix));
+        location.hash = newHash;
+        return hashQs;
+      }
+      return null;
+    }
+
     window.onload = function () {
+      let hashQs = fixHashQs();
+
       const qs = new URLSearchParams(window.location.search);
       const getBool = (key, defaultVal) => {
         if (qs.get(key) === '1' || qs.get(key) === 'true') {
@@ -58,9 +71,23 @@
         }
         return defaultVal || 0;
       };
+
+      const url = qs.get('url');
+      if (url) {
+        const hashQsKey = cyrb53Hash(url) + 'hashQs';
+        if (hashQs) {
+          sessionStorage.setItem(hashQsKey, hashQs ? hashQs.toString() : '');
+        }
+        else {
+          hashQs = new URLSearchParams(sessionStorage.getItem(hashQsKey) || '');
+        }
+      }
+
+      hashQs.forEach((val, key) => console.log('hashQs', { key, val }));
+
       // Begin Swagger UI call region
       const ui = SwaggerUIBundle({
-        url: qs.get('url'),
+        url,
         dom_id: '#swagger-ui',
         configUrl: qs.get('configUrl') || undefined,
         docExpansion: qs.get('docExpansion') || undefined,
@@ -82,11 +109,67 @@
         plugins: [
           SwaggerUIBundle.plugins.DownloadUrl
         ],
+        parameterMacro: function (operation, parameter) {
+          let def = null;
+
+          [
+            ['defval', parameter.in, parameter.name].join('-'),   // defval-{in}-{name}=value
+            ['defval', 'any', parameter.name].join('-'),          // defval-any-{name}=value
+          ].forEach(key => {
+            if (def === null) {
+              def = hashQs.get(key);
+            }
+          });
+
+          return def === null ? parameter.default : def;
+        },
+        onComplete: function () {
+          hashQs.forEach((val, key) => {
+            let m = key.match(/^auth-(apiKey|bearer|basic)-(.+)$/);
+            if (m && val) {
+              switch (m[1]) {
+                case 'apiKey':
+                case 'bearer':
+                  ui.preauthorizeApiKey(m[2], val);
+                  return;
+                case 'basic': {
+                  const ix = val.indexOf(':');
+                  let user = '', pass = '';
+                  if (ix > -1) {
+                    user = val.substr(0, ix);
+                    pass = val.substr(ix + 1);
+                  }
+                  else {
+                    user = val;
+                  }
+                  ui.preauthorizeBasic(m[2], user, pass);
+                  return;
+                }
+                default:
+                  console.warn('unsupported auth type', m[1]);
+                  return;
+              }
+            }
+          });
+        },
         layout: "StandaloneLayout"
       })
       // End Swagger UI call region
 
       window.ui = ui
+    }
+
+    function cyrb53Hash(str) {
+      let seed = 0;
+      let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+      for (let i = 0, ch; i < str.length; i++) {
+        ch = str.charCodeAt(i);
+        h1 = Math.imul(h1 ^ ch, 2654435761);
+        h2 = Math.imul(h2 ^ ch, 1597334677);
+      }
+      h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+      h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+      return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString();
     }
   </script>
 </body>
