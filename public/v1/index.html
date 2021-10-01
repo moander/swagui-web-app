@@ -83,16 +83,16 @@
         }
       }
 
-      hashQs.forEach((val, key) => console.log('hashQs', { key, val }));
+      hashQs && hashQs.forEach((val, key) => console.log('hashQs', { key, val }));
 
       // Begin Swagger UI call region
       const ui = SwaggerUIBundle({
-        url,
+        // url,
         dom_id: '#swagger-ui',
-        configUrl: qs.get('configUrl') || undefined,
-        docExpansion: qs.get('docExpansion') || undefined,
+        // configUrl: qs.get('configUrl') || undefined,
+        // docExpansion: qs.get('docExpansion') || undefined,
         tagsSorter: qs.get('tagsSorter') || 'alpha',
-        operationsSorter: qs.get('operationsSorter') || undefined,
+        // operationsSorter: qs.get('operationsSorter') || undefined,
         deepLinking: getBool('deepLinking', true),
         displayOperationId: getBool('displayOperationId', false),
         defaultModelExpandDepth: getNum('defaultModelExpandDepth', 4),
@@ -101,7 +101,7 @@
         filter: getBool('filter', true),
         showExtensions: getBool('showExtensions', true),
         showCommonExtensions: getBool('showCommonExtensions', true),
-        validatorUrl: 'https://validator.swagger.io/validator',
+        validatorUrl: qs.get('validatorUrl') || 'https://validator.swagger.io/validator',
         presets: [
           SwaggerUIBundle.presets.apis,
           SwaggerUIStandalonePreset
