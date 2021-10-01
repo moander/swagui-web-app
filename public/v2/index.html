@@ -172,7 +172,7 @@
         if (id) {
           const bearer = await id.getIdToken();
           console.log('Bearer', bearer);
-          ui.preauthorizeApiKey('bearer', bearer);
+          ui.preauthorizeApiKey('bearer', `Bearer ${bearer}`);
         }
       });
     }
