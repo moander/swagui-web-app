@@ -1,0 +1,227 @@
+<!-- https://github.com/moander/swagui-web-app -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Swagger UI</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.47.1/swagger-ui.min.css"
+    integrity="sha512-aEbfSpriGJ1mxZoWXLSwbJ8GSMLVNXBmHidn2cAGFHfJCFKSuqZEVzJy3ULeFRvvBIo7AHQbhkPIJ6sKW00GWQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    html {
+      box-sizing: border-box;
+      overflow: -moz-scrollbars-vertical;
+      overflow-y: scroll;
+    }
+
+    *,
+    *:before,
+    *:after {
+      box-sizing: inherit;
+    }
+
+    body {
+      margin: 0;
+      background: #fafafa;
+    }
+
+    .response-controls {
+      display: none !important;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.47.1/swagger-ui-bundle.js"
+    integrity="sha512-jgRW0JF86OgfePQNihFG6r/1FX3X/ZHZ3eqKt2iu2dbog4m0XjnZNvhiuLgN1ttXQnpP0fjLOPf7M1Y9kpEPWQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.47.1/swagger-ui-standalone-preset.min.js"
+    integrity="sha512-Z0GCBh8J2G8IMQdfhNXU400vN8Ik5esbTt6wvZAPWMCEHCA6tDimiGH6sY2g+Kn5Whdq+zLwX+QS6MQsU2POsw=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.1/firebase-app.js";
+    import { getAuth, onIdTokenChanged, signInWithRedirect, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/9.1.1/firebase-auth.js";
+
+    async function main() {
+      let hashQs = fixHashQs();
+      const qs = new URLSearchParams(window.location.search);
+
+      const getBool = (key, defaultVal) => {
+        if (qs.get(key) === '1' || qs.get(key) === 'true') {
+          return true;
+        }
+        else if (typeof defaultVal !== 'undefined') {
+          return defaultVal;
+        }
+        return false;
+      };
+      const getNum = (key, defaultVal) => {
+        if (qs.get(key)) {
+          return Number(qs.get(key));
+        }
+        return defaultVal || 0;
+      };
+
+      const url = qs.get('url');
+      if (url) {
+        const hashQsKey = cyrb53Hash(url) + 'hashQs';
+        if (hashQs) {
+          sessionStorage.setItem(hashQsKey, hashQs ? hashQs.toString() : '');
+        }
+        else {
+          hashQs = new URLSearchParams(sessionStorage.getItem(hashQsKey) || '');
+        }
+      }
+
+      hashQs && hashQs.forEach((val, key) => console.log('hashQs', { key, val }));
+
+      const firebaseConfig = getFirebaseConfig();
+      const fbauth = getAuth(initializeApp(firebaseConfig, firebaseConfig.projectId));
+
+      fbauth.onAuthStateChanged(id => {
+        console.log('onAuthStateChanged', id?.toJSON());
+        if (!id) {
+          const lastTs = Number(sessionStorage.getItem('lastRedir') || 0);
+          if (!lastTs || (Date.now() - lastTs) > 5e3) {
+            sessionStorage.setItem('lastRedir', Date.now().toString());
+            return signInWithRedirect(fbauth, new GoogleAuthProvider());
+          }
+          console.warn('redir flood protection kicked in');
+        }
+      });
+
+
+      // Begin Swagger UI call region
+      const ui = SwaggerUIBundle({
+        // url,
+        dom_id: '#swagger-ui',
+        // configUrl: qs.get('configUrl') || undefined,
+        // docExpansion: qs.get('docExpansion') || undefined,
+        tagsSorter: qs.get('tagsSorter') || 'alpha',
+        // operationsSorter: qs.get('operationsSorter') || undefined,
+        deepLinking: getBool('deepLinking', true),
+        displayOperationId: getBool('displayOperationId', false),
+        defaultModelExpandDepth: getNum('defaultModelExpandDepth', 4),
+        defaultModelsExpandDepth: getNum('defaultModelsExpandDepth', 5),
+        displayRequestDuration: getBool('displayRequestDuration', true),
+        filter: getBool('filter', true),
+        showExtensions: getBool('showExtensions', true),
+        showCommonExtensions: getBool('showCommonExtensions', true),
+        validatorUrl: qs.get('validatorUrl') || 'https://validator.swagger.io/validator',
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        plugins: [
+          SwaggerUIBundle.plugins.DownloadUrl
+        ],
+        parameterMacro: function (operation, parameter) {
+          let def = null;
+
+          [
+            ['defval', parameter.in, parameter.name].join('-'),   // defval-{in}-{name}=value
+            ['defval', 'any', parameter.name].join('-'),          // defval-any-{name}=value
+          ].forEach(key => {
+            if (def === null) {
+              def = hashQs.get(key);
+            }
+          });
+
+          return def === null ? parameter.default : def;
+        },
+        onComplete: function () {
+          hashQs.forEach((val, key) => {
+            let m = key.match(/^auth-(apiKey|bearer|basic)-(.+)$/);
+            if (m && val) {
+              switch (m[1]) {
+                case 'apiKey':
+                case 'bearer':
+                  ui.preauthorizeApiKey(m[2], val);
+                  return;
+                case 'basic': {
+                  const ix = val.indexOf(':');
+                  let user = '', pass = '';
+                  if (ix > -1) {
+                    user = val.substr(0, ix);
+                    pass = val.substr(ix + 1);
+                  }
+                  else {
+                    user = val;
+                  }
+                  ui.preauthorizeBasic(m[2], user, pass);
+                  return;
+                }
+                default:
+                  console.warn('unsupported auth type', m[1]);
+                  return;
+              }
+            }
+          });
+        },
+        layout: "StandaloneLayout"
+      })
+      // End Swagger UI call region
+
+      window.ui = ui
+
+      fbauth.onIdTokenChanged(async id => {
+        if (id) {
+          const bearer = await id.getIdToken();
+          console.log('Bearer', bearer);
+          ui.preauthorizeApiKey('bearer', bearer);
+        }
+      });
+    }
+
+    function fixHashQs() {
+      const ix = (location.hash || '').indexOf('?');
+      if (ix > -1) {
+        const newHash = location.hash.substr(0, ix);
+        const hashQs = new URLSearchParams(location.hash.substr(ix));
+        location.hash = newHash;
+        return hashQs;
+      }
+      return null;
+    }
+
+    function cyrb53Hash(str) {
+      let seed = 0;
+      let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+      for (let i = 0, ch; i < str.length; i++) {
+        ch = str.charCodeAt(i);
+        h1 = Math.imul(h1 ^ ch, 2654435761);
+        h2 = Math.imul(h2 ^ ch, 1597334677);
+      }
+      h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+      h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+      return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString();
+    }
+
+    function getFirebaseConfig() {
+      const qs = new URLSearchParams(window.location.search);
+      if (qs.get('fbauth')) {
+        const cfg = JSON.parse(qs.get('fbauth'));
+        [
+          'apiKey',
+          'projectId',
+          'authDomain',
+        ].forEach(key => !cfg[key] && console.error(`fbauth ${key} is required`));
+        return cfg;
+      }
+      return {
+        apiKey: "AIzaSyB5YH_Ujjdw3jxNpOupBTKQCec-kk-t3_0",
+        projectId: "moander",
+        authDomain: "swagui.web.app",
+        appId: "1:599391591857:web:0df8e237d32e9b827c3190"
+      };
+    }
+
+    window.onload = () => main().then(() => console.log('main() success'), err => console.error('main() error', err));
+  </script>
+</body>
+
+</html>
